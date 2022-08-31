@@ -1,6 +1,6 @@
-# This docker-compose file follows the best-practicis for a docker-compose setup
+# This docker-compose file follows the best-practices for a docker-compose setup
 # used by a Lagoon based project.
-# https://docs.lagoon.sh/lagoon/using-lagoon-the-basics/docker-compose-yml
+# https://docs.lagoon.sh/using-lagoon-the-basics/docker-compose-yml/
 #
 # Note that this file is not actually processed by lagoon. Instead a specialized
 # version is injected during deployment by the dpl-platform. As a consequence
@@ -62,8 +62,6 @@ services:
     image: &cli-image uselagoon/php-8.0-cli-drupal:latest # this image will be reused as `CLI_IMAGE` in subsequent Docker builds
     << : *default-volumes # loads the defined volumes from the top
     user: root
-    environment:
-      << : *default-environment # loads the defined environment variables from the top
     labels:
       # Lagoon Labels
       lagoon.type: cli-persistent
