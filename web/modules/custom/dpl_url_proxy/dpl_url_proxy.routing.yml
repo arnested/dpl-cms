@@ -1,0 +1,9 @@
+dpl_url_proxy.ajax-add-more-form:
+  path: '/admin/config/dpl_url_proxy/ajaxaddmore'
+  defaults:
+    _form: '\Drupal\dpl_url_proxy\Form\AjaxAddMoreForm'
+    _title: 'AjaxAddMoreForm'
+  requirements:
+    _permission: 'access administration pages'
+  options:
+    _admin_route: TRUE

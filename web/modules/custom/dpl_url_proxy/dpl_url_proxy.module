@@ -1,0 +1,24 @@
+<?php
+
+/**
+ * @file
+ * Contains dpl_url_proxy.module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function dpl_url_proxy_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    // Main module help for the dpl_url_proxy module.
+    case 'help.page.dpl_url_proxy':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('Module for generating specially formatted external urls') . '</p>';
+      return $output;
+
+    default:
+  }
+}
