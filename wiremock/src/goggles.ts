@@ -18,7 +18,7 @@ if (!process.env.HTTP_PROXY) {
 
 const httpProxy = process.env.HTTP_PROXY;
 const pa11yConfPath = process.env.PA11Y_CONF_PATH || '.pa11yci';
-const httpProxyBypassList = process.env.HTTP_PROXY_BYPASS_LIST || 'dpl-cms.docker,picsum.photos,i.picsum.photos';
+const httpProxyBypassList = process.env.HTTP_PROXY_BYPASS_LIST || 'dpl-cms-february.docker,picsum.photos,i.picsum.photos';
 let startingUrl = process.env.STARTING_URL || '';
 
 if (!startingUrl) {
@@ -35,14 +35,14 @@ if (!startingUrl) {
 
   startingUrl = pa11yConf.urls[0].url;
 };
-
+console.log(`🚀 Launching chrome with proxy ${httpProxy} and bypass list ${httpProxyBypassList}...`);
 launch({
   startingUrl,
   chromeFlags: [
     `--proxy-server=${httpProxy}`,
     `--proxy-bypass-list=${httpProxyBypassList}`,
     '--args',
-    '--user-data-dir=/tmp/chrome_dev_test',
+    '--user-data-dir=/tmp/chrome_dev_test_feb',
     '--disable-web-security'
   ]
 }).then(chrome => {
