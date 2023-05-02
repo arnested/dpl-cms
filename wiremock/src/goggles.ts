@@ -43,7 +43,8 @@ launch({
     `--proxy-bypass-list=${httpProxyBypassList}`,
     '--args',
     '--user-data-dir=/tmp/chrome_dev_test',
-    '--disable-web-security'
+    '--disable-web-security',
+    '--incognito'
   ]
 }).then(chrome => {
   console.log(`😎 Wiremock goggles are ON! Watch the world like a CI setup...`);
