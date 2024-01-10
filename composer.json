@@ -108,6 +108,7 @@
         "drupal/paragraphs": "^1.16",
         "drupal/paragraphs_ee": "^10.0",
         "drupal/potion": "dev-2.x#e48d6ee336d960b9d2efb5d88e68402db6d229a6",
+        "drupal/potx": "^1.0",
         "drupal/purge": "^3.2",
         "drupal/recurring_events": "^2.0@RC",
         "drupal/redis": "^1.7",
@@ -253,6 +254,9 @@
                 "Update with Rector": "patches/potion-rector.patch",
                 "Mark as Drupal 10 compatible": "patches/potion-d10-info.patch",
                 "Use Drupal StaticReflectionParser with Drupal 10.1": "patches/potion-d10-1-staticreflection.patch"
+            },
+            "drupal/potx": {
+                "3017733: Allow output folder/filename to be specified": "https://www.drupal.org/files/issues/2022-05-05/3017733-11.patch"
             }
         }
     }
