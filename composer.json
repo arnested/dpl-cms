@@ -228,6 +228,9 @@
             "drupal/default_content": {
                 "3200212: Overwrite files on import": "https://git.drupalcode.org/project/default_content/-/merge_requests/8.patch"
             },
+            "drupal/date_range_formatter": {
+                "3059520: Use semantically correct tag to render date and date range": "https://git.drupalcode.org/project/date_range_formatter/-/merge_requests/7.patch"
+            },
             "drupal/field_inheritance": {
                 "3330386: field_inheritance_form_alter should enforce module permissions": "https://git.drupalcode.org/project/field_inheritance/-/commit/bc3d26cdce8c09d5b6275fc126e35bc7e239c7d1.patch"
             },
