@@ -215,6 +215,17 @@ function dpl_event_preprocess_field__field_ticket_category_price(array &$variabl
 }
 
 /**
+ * Implements hook_preprocess_field__eventinstance__date().
+ */
+function dpl_event_preprocess_field__eventinstance__date(array &$variables) {
+  // Add a class required by the design system to all elements.
+  array_walk($variables['items'], function(array &$item) {
+    $item['content']['#attributes']['class'] = ['content']['#attributes']['class'] ?? [];
+    $item['content']['#attributes']['class'] = "event-header__date";
+  });
+}
+
+/**
  * Implements hook_preprocess_HOOK() for node templates.
  *
  * Preprocesses variables for node templates.
