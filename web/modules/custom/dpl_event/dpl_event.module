@@ -243,6 +243,7 @@ function dpl_event_preprocess_eventseries(array &$variables): void {
  * @throws \Safe\Exceptions\ArrayException
  */
 function dpl_event_preprocess_eventinstance(array &$variables): void {
+  /** @var \Drupal\recurring_events\EventInterface $event_instance */
   $event_instance = $variables['eventinstance'];
 
   if ($event_instance->hasField('field_ticket_categories')) {
@@ -289,6 +290,7 @@ function dpl_event_gin_content_form_routes() : array {
  *   in the site's timezone.
  */
 function dpl_event_preprocess_eventinstance__list_teaser(array &$variables): void {
+  /** @var \Drupal\recurring_events\EventInterface $event_instance */
   $event_instance = $variables['eventinstance'];
   /** @var \Drupal\Core\Datetime\DateFormatterInterface $date_formatter */
   $date_formatter = \Drupal::service('date.formatter');
@@ -310,10 +312,11 @@ function dpl_event_preprocess_eventinstance__list_teaser(array &$variables): voi
 
   // Extract start_date, end_date and datetime attributes.
   if (!$event_instance->get('date')->isEmpty()) {
+    /** @var \Drupal\datetime_range\Plugin\Field\FieldType\DateRangeItem $date_field */
     $date_field = $event_instance->get('date')->first();
 
-    $start_date = $date_field->start_date;
-    $end_date = $date_field->end_date;
+    $start_date = $date_field->get('start_date')->getValue();
+    $end_date = $date_field->get('end_date')->getValue();
 
     if ($start_date instanceof DrupalDateTime) {
       $variables['start_date'] = $date_formatter->format($start_date->getTimestamp(), 'custom', 'H:i');
