@@ -243,11 +243,10 @@ function dpl_event_preprocess_eventseries(array &$variables): void {
  * @throws \Safe\Exceptions\ArrayException
  */
 function dpl_event_preprocess_eventinstance(array &$variables): void {
+  $event_instance = $variables['eventinstance'];
 
-  $eventInstance = $variables['eventinstance'];
-
-  if ($eventInstance->hasField('field_ticket_categories')) {
-    $ticket_categories = $eventInstance->get('field_ticket_categories')->referencedEntities();
+  if ($event_instance->hasField('field_ticket_categories')) {
+    $ticket_categories = $event_instance->get('field_ticket_categories')->referencedEntities();
     $prices = [];
 
     // Collect prices from ticket categories.
@@ -290,16 +289,16 @@ function dpl_event_gin_content_form_routes() : array {
  *   in the site's timezone.
  */
 function dpl_event_preprocess_eventinstance__list_teaser(array &$variables): void {
-  $eventInstance = $variables['eventinstance'];
+  $event_instance = $variables['eventinstance'];
   /** @var \Drupal\Core\Datetime\DateFormatterInterface $date_formatter */
   $date_formatter = \Drupal::service('date.formatter');
 
   // Extract the event url.
-  $variables['eventinstance_url'] = Url::fromRoute('entity.eventinstance.canonical', ['eventinstance' => $eventInstance->id()])->toString();
+  $variables['eventinstance_url'] = Url::fromRoute('entity.eventinstance.canonical', ['eventinstance' => $event_instance->id()])->toString();
 
   // Extract image file URL and alt text.
-  if ($eventInstance->hasField('event_image') && !$eventInstance->get('event_image')->isEmpty()) {
-    $media_entity = $eventInstance->get('event_image')->entity;
+  if ($event_instance->hasField('event_image') && !$event_instance->get('event_image')->isEmpty()) {
+    $media_entity = $event_instance->get('event_image')->entity;
     if ($media_entity instanceof Media && $media_entity->bundle() == 'image' && !$media_entity->field_media_image->isEmpty()) {
       $file = $media_entity->field_media_image->entity;
       if ($file instanceof File) {
@@ -310,8 +309,8 @@ function dpl_event_preprocess_eventinstance__list_teaser(array &$variables): voi
   }
 
   // Extract start_date, end_date and datetime attributes.
-  if (!$eventInstance->get('date')->isEmpty()) {
-    $date_field = $eventInstance->get('date')->first();
+  if (!$event_instance->get('date')->isEmpty()) {
+    $date_field = $event_instance->get('date')->first();
 
     $start_date = $date_field->start_date;
     $end_date = $date_field->end_date;
