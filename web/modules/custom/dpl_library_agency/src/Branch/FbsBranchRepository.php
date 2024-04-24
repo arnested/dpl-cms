@@ -34,9 +34,19 @@ class FbsBranchRepository implements BranchRepositoryInterface {
     // Use an empty token if we don't have one. This may cause the API to throw
     // an exception, but that is acceptable.
     $api = $this->apiFactory->getAgencyApi($this->tokenHandler->getToken() ?? '');
-    return array_map(function (AgencyBranch $branch) {
-      return new Branch($branch->getBranchId(), $branch->getTitle());
-    }, $api->getBranches());
+    try {
+      return array_map(function (AgencyBranch $branch) {
+        return new Branch($branch->getBranchId(), $branch->getTitle());
+      }, $api->getBranches());
+    }
+    catch (\Exception $e) {
+      // Log the exception and return an empty array.
+      \Drupal::logger('dpl_library_agency')->error('Failed to retrieve branches: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+      return [];
+    }
+
   }
 
 }
