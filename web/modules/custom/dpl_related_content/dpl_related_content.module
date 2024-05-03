@@ -1,0 +1,320 @@
+<?php
+
+use Drupal\Core\Database\Database;
+use Drupal\Core\Datetime\DrupalDateTime;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\datetime\Plugin\Field\FieldType\DateTimeItemInterface;
+use Drupal\node\Entity\Node;
+use Drupal\node\NodeInterface;
+use Drupal\recurring_events\Entity\EventInstance;
+
+
+function _get_eventinstance_ids($current_uuid, $tags = [], $categories = []) {
+  $date = new DrupalDateTime('today');
+  $date->setTimezone(new \DateTimezone(DateTimeItemInterface::STORAGE_TIMEZONE));
+  $formatted_date = $date->format(DateTimeItemInterface::DATETIME_STORAGE_FORMAT);
+
+  $connection = Database::getConnection();
+
+  // Prepare a subquery for eventseries ids based on tags or categories
+  $subquery = $connection->select('eventseries', 'es');
+  $subquery->fields('es', ['id']);  // We only need the id of the eventseries
+
+  // Join the tag and category field tables
+  $subquery->leftJoin('eventseries__field_tags', 'eft', 'es.id = eft.entity_id');
+  $subquery->leftJoin('eventseries__field_categories', 'efc', 'es.id = efc.entity_id');
+
+  // Use a condition group for OR logic
+  $orGroup = $subquery->orConditionGroup();
+
+  if (!empty($tags)) {
+    $orGroup->condition('eft.field_tags_target_id', $tags, 'IN');
+  }
+
+  if (!empty($categories)) {
+    $orGroup->condition('efc.field_categories_target_id', $categories, 'IN');
+  }
+
+  $subquery->condition($orGroup);
+  $subquery->distinct(TRUE);
+
+
+
+
+
+  // Main query to select eventinstance ids, joining with eventinstance_field_data for correct fields
+  $query = $connection->select('eventinstance_field_data', 'eid');
+  $query->join('eventinstance', 'ei', 'ei.id = eid.id');  // Join on the id field with the eventinstance table
+  $query->addField('eid', 'id', 'eventinstance_id');  // Select the id from eventinstance_field_data as eventinstance_id
+
+  if (!empty($tags) || !empty($categories)) {
+    $query->condition('eid.eventseries_id', $subquery, 'IN');  // Use the subquery to filter by eventseries_id
+  }
+
+  $query->condition('ei.uuid', $current_uuid, '<>');
+  $query->condition('eid.date__value', $formatted_date, '>=');
+  $query->orderBy('eid.date__value', 'DESC');
+  $query->range(0, 16);
+
+
+  // Add a GROUP BY clause to make results distinct by eventseries_id
+  $query->groupBy('eid.eventseries_id');
+
+
+  // Execute the query and return ids
+  $result = $query->execute();
+  return $result->fetchCol();
+}
+
+function _get_article_ids($current_uuid, $tags = [], $categories = []) {
+  $query = \Drupal::entityQuery('node')->accessCheck(TRUE)
+    ->condition('type', 'article')
+    ->condition('uuid', $current_uuid, '<>')
+    ->sort('created' , 'DESC')
+    ->range(0, 16);
+
+  if (!empty($tags)) {
+    $query->condition('field_tags', $tags, 'IN');
+  }
+
+  if (!empty($categories)) {
+    $query->condition('field_categories', $categories, 'IN');
+  }
+
+  return $query->execute();
+}
+
+function dpl_related_content_preprocess_page(array &$variables): void {
+  $entity = \Drupal::routeMatch()->getParameter('node');
+
+  if (empty($entity)) {
+    $entity = \Drupal::routeMatch()->getParameter('eventinstance');
+  }
+
+  if (!($entity instanceof FieldableEntityInterface)) {
+    return;
+  }
+
+  $current_uuid = $entity->uuid();
+  $tags = _get_term_ids($entity, 'field_tags');
+
+  $event_ids = _get_eventinstance_ids($current_uuid, $tags);
+  $article_ids = _get_article_ids($current_uuid, $tags);
+
+  $full_count = count($event_ids) + count($article_ids);
+
+  if ($full_count < 5) {
+    $categories = _get_term_ids($entity, 'field_categories');
+
+    $event_ids = _get_eventinstance_ids($current_uuid, $tags, $categories);
+    $article_ids = _get_article_ids($current_uuid, $tags, $categories);
+  }
+
+  print_r($event_ids);
+  print_r($article_ids);
+}
+
+function _get_term_ids($entity, $field_name) {
+  if (!$entity->hasField($field_name)) {
+    return FALSE;
+  }
+
+  $terms = $entity->get($field_name)->getValue();
+  return array_column($terms, 'target_id');
+
+}
+/*
+function _get_base_event_query($current_uuid) {
+
+
+  $connection = Database::getConnection();
+
+  $query = $connection->select('eventinstance', 'ei');
+  $query->addField('ei', 'id');  // Select only the id of eventinstance
+  $query->condition('ei.uuid', $current_uuid, '<>');  // Ensure we're not selecting the current event instance
+  $query->condition('ei.eventseries_id', $subquery, 'IN');  // Filter by eventseries ids from the subquery
+  $query->condition('ei.date', $formatted, '>=');  // Filter by date
+  $query->orderBy('ei.date', 'DESC');  // Order by date descending
+  $query->range(0, 16);  // Limit to 16 results
+*/
+  /*
+  // todo - distinct on eventseries
+  return \Drupal::entityQuery('eventinstance')->accessCheck(TRUE)
+    ->condition('uuid', $current_uuid, '<>')
+    ->condition('date.value', $formatted, '>=')
+    ->sort('date' , 'DESC')
+    ->range(0, 16);
+
+}
+  */
+/*
+function _get_base_article_query($current_uuid) {
+  return \Drupal::entityQuery('node')->accessCheck(TRUE)
+    ->condition('type', 'article')
+    ->condition('uuid', $current_uuid, '<>')
+    ->sort('created' , 'DESC')
+    ->range(0, 16);
+}
+
+function _get_term_query($query, $entity, $field_name, $target_field_name) {
+  if (!$entity->hasField($field_name)) {
+    return FALSE;
+  }
+
+  $terms = $entity->get($field_name)->getValue();
+  $term_ids = array_column($terms, 'target_id');
+
+  if (empty($term_ids)) {
+    return FALSE;
+  }
+
+  $query->condition($target_field_name, $term_ids, 'IN');
+
+  return $query;
+}
+*/
+/*
+function get_combined_results($article_query, $event_query) {
+  if (!$article_query || !$event_query) {
+    return [];
+  }
+
+  $article_ids = $article_query->execute();
+  $articles = Node::loadMultiple($article_ids);
+
+  $event_ids = $event_query->execute();
+  $events = EventInstance::loadMultiple($event_ids);
+
+  return array_merge($articles, $events);
+}
+*/
+
+/*
+function dpl_related_content_preprocess_page(array &$variables): void {
+  $entity = \Drupal::routeMatch()->getParameter('node');
+
+  if (empty($entity)) {
+    $entity = \Drupal::routeMatch()->getParameter('eventinstance');
+  }
+
+
+
+
+  /*
+
+
+  $tag_field = 'field_tags';
+  $category_field = 'field_categories';
+
+  $uuid = $entity->uuid();
+
+  $article_query = _get_base_article_query($uuid);
+
+  $article_query = _get_term_query($article_query, $entity, $tag_field, 'field_tags');
+  $event_query = _get_term_query($event_query, $entity, $tag_field, 'event_tags');
+
+  $results = get_combined_results($article_query, $event_query);
+  $variables['results'][] = $results;
+
+  if (count($results) > 4) {
+    return;
+  }
+
+  $article_query = _get_term_query($article_query, $entity, $category_field, 'field_categories');
+  $event_query = _get_term_query($event_query, $entity, $category_field, 'event_categories');
+
+  $results = get_combined_results($article_query, $event_query);
+  $variables['results'][] = $results;
+
+  if (count($results) > 4) {
+    return;
+  }
+
+}
+
+
+
+/*
+function dpl_related_content_preprocess_node(&$variables) {
+  $node = $variables['node'] ?? NULL;
+
+  if (!($node instanceof \Drupal\node\Entity\Node)) {
+    return;
+  }
+
+  $tags = $node->get('field_tags')->getValue();
+  $tag_ids = array_column($tags, 'target_id');
+  $ids = _find_articles_by_tags($node->uuid(), $tag_ids);
+  print_r($ids);
+
+  if (count($ids) > 4) {
+    return;
+  }
+
+  $categories = $node->get('field_categories')->getValue();
+  $category_ids = array_column($categories, 'target_id');
+  $current_uuid = $node->uuid();
+
+  $ids = _find_articles_by_tags_and_categories($current_uuid, $tag_ids, $category_ids);
+  print_r($ids);
+
+  if (count($ids) > 4) {
+    return;
+  }
+
+  // if this is an eventpage
+  if (FALSE) {
+    $ids = [];
+  }
+  print_r($ids);
+
+  if (count($ids) > 4) {
+    return;
+  }
+
+  $query = _get_base_article_query($current_uuid);
+  $ids = $query->execute();
+
+  print_r($ids);
+
+}
+
+
+
+
+
+
+
+
+
+
+function _find_articles_by_tags($current_uuid, $tag_ids) {
+  $query = _get_base_article_query($current_uuid);
+
+
+  if (empty($tag_ids)) {
+    return [];
+  }
+
+
+    ->execute();
+
+  return $ids;
+}
+
+function _find_articles_by_tags_and_categories($current_uuid, $tag_ids, $category_ids) {
+  $query = _get_base_article_query($current_uuid);
+
+  if (empty($tag_ids) || empty($category_ids)) {
+    return [];
+  }
+
+  $ids = $query
+    ->condition('field_tags', $tag_ids, 'IN')
+    ->condition('field_categories', $category_ids, 'IN')
+    ->execute();
+
+  return $ids;
+}
+*/
