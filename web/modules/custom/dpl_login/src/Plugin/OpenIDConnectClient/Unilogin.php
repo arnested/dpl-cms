@@ -24,10 +24,10 @@ class Unilogin extends OpenIDConnectClientBase {
    */
   public function defaultConfiguration(): array {
     return [
-      'authorization_endpoint' => 'https://broker.unilogin.dk/auth/realms/broker/protocol/openid-connect/auth',
-      'token_endpoint' => 'https://broker.unilogin.dk/auth/realms/broker/protocol/openid-connect/token',
-      'userinfo_endpoint' => 'https://broker.unilogin.dk/auth/realms/broker/protocol/openid-connect/userinfo',
-      'logout_endpoint' => 'https://broker.unilogin.dk/auth/realms/broker/protocol/openid-connect/logout',
+      'authorization_endpoint' => 'https://et-broker.unilogin.dk/auth/realms/broker/protocol/openid-connect/auth',
+      'token_endpoint' => 'https://et-broker.unilogin.dk/auth/realms/broker/protocol/openid-connect/token',
+      'userinfo_endpoint' => 'https://et-broker.unilogin.dk/auth/realms/broker/protocol/openid-connect/userinfo',
+      'logout_endpoint' => 'https://et-broker.unilogin.dk/auth/realms/broker/protocol/openid-connect/logout',
     ] + parent::defaultConfiguration();
   }
 
@@ -96,11 +96,21 @@ class Unilogin extends OpenIDConnectClientBase {
    */
   protected function getUrlOptions($scope, GeneratedUrl $redirect_uri): array {
     $options = parent::getUrlOptions($scope, $redirect_uri);
-    // unset($options["query"]["redirect_uri"]);.
-    // $options["query"]["redirect_uri"] = "https://stg.ereolengo.itkdev.dk/unilogin/callback";
-    $options["query"]["code_challenge"] = "OexM_p_DZhy69S1ORWUKTY6L4pNnj94ySwL3bDELbjY";
+
+    // Explicitly set scope to "openid" as Unilogin requires this.
+    // @see https://viden.stil.dk/display/OFFSKOLELOGIN/Opgradering+af+Unilogin+Broker+-+Breaking+changes
+    $options["query"]["scope"] = "openid";
+
+    // Generate PKCE code verifier and code challenge.
+    // @see https://auth0.com/docs/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce
+    // @see https://viden.stil.dk/display/OFFSKOLELOGIN/Implementering+af+tjeneste#Implementeringaftjeneste-1.3.1Hvordangenerereskorrektcode_challengeogcodeverifier
+    $code_verifier = bin2hex(random_bytes(32));
+    $code_challenge = rtrim(strtr(base64_encode(hash('sha256', $code_verifier, TRUE)), '+/', '-_'), '=');
+
+    $options["query"]["code_challenge"] = $code_challenge;
     $options["query"]["code_challenge_method"] = "S256";
-    $asdhasdh = '';
+
+    $_SESSION['unilogin_oauth2_code_verifier'] = $code_verifier;
 
     return $options;
   }
