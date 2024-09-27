@@ -129,4 +129,26 @@ class Unilogin extends OpenIDConnectClientBase {
     return [];
   }
 
+  /**
+   * Helper function for request options.
+   *
+   * @param string $authorization_code
+   *   Authorization code received as a result of the the authorization request.
+   * @param string $redirect_uri
+   *   URI to redirect for authorization.
+   *
+   * @return array
+   *   Array with request options.
+   */
+  protected function getRequestOptions($authorization_code, $redirect_uri) {
+    $request_options = parent::getRequestOptions($authorization_code, $redirect_uri);
+    return [
+      ...$request_options,
+      'form_params' => [
+        'code_verifier' => $_SESSION['unilogin_oauth2_code_verifier'],
+        ...$request_options['form_params'],
+      ],
+    ];
+  }
+
 }

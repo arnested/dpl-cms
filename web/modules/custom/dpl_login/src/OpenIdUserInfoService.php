@@ -4,8 +4,6 @@ namespace Drupal\dpl_login;
 
 use Drupal\Core\Site\Settings;
 
-use function Safe\sprintf;
-
 /**
  * OpenIdUserInfoService.
  *
@@ -33,13 +31,10 @@ class OpenIdUserInfoService {
    */
   public function getOpenIdUserInfoFromAdgangsplatformenUserInfoResponse(array $response): array {
     $name = uniqid();
-    // Drupal needs an email. We set a unique one to apply to that rule.
+    // // Drupal needs an email. We set a unique one to apply to that rule.
     $userinfo['email'] = sprintf('%s@dpl-cms.invalid', $name);
-    // Drupal needs a username. We use the unique id to apply to that rule.
+    // // Drupal needs a username. We use the unique id to apply to that rule.
     $userinfo['name'] = $name;
-    // openid_connect module needs the subject id for creating the auth map.
-    $userinfo['sub'] = $this->getSubjectIdFromUserInfo($response);
-
     return $userinfo;
   }
 
