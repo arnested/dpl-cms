@@ -17,6 +17,7 @@ use Drupal\dpl_fbs\Patron\BlockedReason;
 use Drupal\dpl_login\AccessToken;
 use Drupal\dpl_login\DplLoginInterface;
 use Drupal\dpl_login\Exception\AccessTokenCreationException;
+use Drupal\dpl_login\UniloginTokens;
 use Drupal\dpl_login\UserTokensProviderInterface;
 use Drupal\user\UserInterface;
 use Psr\Log\LoggerInterface;
@@ -34,21 +35,11 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
  * @throws Exception
  */
 function dpl_login_openid_connect_userinfo_alter(array &$userinfo, array $context): void {
-  $request = \Drupal::request();
-  (new RedirectResponse(sprintf('http://dapple-cms.docker/openid-connect/Unilogin?state=%s&session_state=%s', $request->query->get('state'), $request->query->get(key: 'session_state')), 302))->send();
-  exit();
-
-  // If (_dpl_login_is_unilogin_flow($context)) {
-  //   $dhhd = '';
-  //   return;
-  // }.
   $name = uniqid();
   // Drupal needs an email. We set a unique one to apply to that rule.
   $userinfo['email'] = sprintf('%s@dpl-cms.invalid', $name);
   // Drupal needs a username. We use the unique id to apply to that rule.
   $userinfo['name'] = $name;
-
-  // Return $userinfo;.
 }
 
 /**
@@ -75,12 +66,8 @@ function _dpl_login_is_unilogin_flow(array $context): bool {
  * @throws \Drupal\dpl_login\Exception\MissingConfigurationException
  */
 function dpl_login_openid_connect_pre_authorize(AccountInterface|FALSE $account, array $context): bool {
+  // If the flow is an Unilogin flow we skip the Adgangsplatform pre authorize hook.
   if (_dpl_login_is_unilogin_flow($context)) {
-    // $session_manager = \Drupal::service('session_manager');
-    // $session_manager->destroy();
-    // setcookie(name: 'unilogin_token_info', value: http_build_query($context["tokens"]), expires_or_options: $context["tokens"]["expire"], path: "/", domain: "dapple-cms.docker");
-    // sleep(1);
-    // (new RedirectResponse('http://dapple-cms.docker:3000', 302))->send();
     return TRUE;
   }
 
@@ -161,18 +148,17 @@ function _dpl_login_get_patron(AccessToken $token): AuthenticatedPatronV6 {
  *   Various openid_connect context. Tokens etc.
  */
 function dpl_login_openid_connect_post_authorize(AccountInterface $account, array $context): void {
-
-  // If (_dpl_login_is_unilogin_flow($context)) {
-  //   if (\Drupal::currentUser()->isAuthenticated()) {
-  //     $session_manager = \Drupal::service('session_manager');
-  //     $session_manager->delete(\Drupal::currentUser()->id());
-  //   }
-  //   $dhhd = '';
-  //   setcookie('unilogin_token_info', http_build_query($context["tokens"]), $context["tokens"]["expire"], "/", "dapple-cms.docker");
-  //   (new RedirectResponse('/', 302))->send();
-  //   exit();
-  //   return;
-  // }
+  // If the flow is an Unilogin flow we skip the Adgangsplatform post authorize hook
+  // and redirect to the go app.
+  if (_dpl_login_is_unilogin_flow($context)) {
+    $tokens = UniloginTokens::createFromOpenidConnectContext($context);
+    $unilogin_tokens_provider = \Drupal::service('dpl_login.unilogin_user_tokens');
+    $unilogin_tokens_provider->setTokens($tokens);
+    // TODO: Make this configurable.
+    (new RedirectResponse('http://go.dapple-cms.docker:3000', 302))->send();
+    exit();
+    return;
+  }
   $access_token = AccessToken::createFromOpenidConnectContext($context);
   $token_provider = _dpl_login_get_access_token_provider($access_token);
   $logger = _dpl_login_get_authorization_logger($access_token);

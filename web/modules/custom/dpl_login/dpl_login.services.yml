@@ -7,6 +7,9 @@ services:
     class: Drupal\dpl_login\Routing\DisableCsrfCheckSubscriber
     tags:
       - { name: event_subscriber }
+  dpl_login.unilogin_user_tokens:
+    class: Drupal\dpl_login\UniloginUserTokensProvider
+    arguments: ["@tempstore.private"]
   dpl_login.registered_user_tokens:
     class: Drupal\dpl_login\RegisteredUserTokensProvider
     arguments: ["@tempstore.private"]
